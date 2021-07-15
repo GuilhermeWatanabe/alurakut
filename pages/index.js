@@ -47,11 +47,7 @@ function ProfileRelationsBox(props) {
 
 export default function Home() {
   const githubUser = 'GuilhermeWatanabe';
-  const [communities, setCommunity] = React.useState([{
-    id: '37273712893291',
-    title: 'Eu odeio acordar cedo',
-    image: 'https://alurakut.vercel.app/capa-comunidade-01.jpg'
-  }]);
+  const [communities, setCommunity] = React.useState([]);
   const favorites = [
     'juunegreiros', 
     'omariosouto', 
@@ -70,6 +66,28 @@ export default function Home() {
       .then((fullResponse) => {
         setFollowers(fullResponse);
       });
+
+    fetch('https://graphql.datocms.com/', {
+      method: 'POST',
+      headers: {
+        'Authorization': '8b2fc2385f1b91a0a7a8d7f1b90e83',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({"query": `query {
+        allCommunities {
+          id
+          title
+          imageUrl
+          creatorSlug
+        }
+      }`})
+    })
+    .then((response) => response.json())
+    .then((fullResponse) => {
+      const communitiesDato = fullResponse.data.allCommunities;
+      setCommunity(communitiesDato);
+    })
   }, []);
 
   return (
@@ -96,12 +114,23 @@ export default function Home() {
               const form = new FormData(e.target);
 
               const newCommunity = {
-                id: new Date().toISOString(),
                 title: form.get('title'),
-                image: form.get('image')
+                imageUrl: form.get('image'),
+                creatorSlug: githubUser,
               }
 
-              setCommunity([...communities, newCommunity]);
+              fetch('/api/communities', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newCommunity)
+              })
+              .then(async (response) => {
+                const data = await response.json();
+                setCommunity([...communities, data.record]);
+              })
+
             }}>
               <div>
                 <input 
@@ -135,8 +164,8 @@ export default function Home() {
             {communities.map((item) => {
               return (
                 <li key={item.id}>
-                  <a href={`/users/${item.title}`}>
-                    <img src={item.image} />
+                  <a href={`/communities/${item.id}`}>
+                    <img src={item.imageUrl} />
                     <span>{item.title}</span>
                   </a>
                 </li>
